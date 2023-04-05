@@ -7,23 +7,69 @@ using System.Threading;
 
 public class CustomGame : MonoBehaviour
 {
-    Cell[,] cellGrid = new Cell[Globals.gridWidth, Globals.gridHeight];
+    Cell[,] cellGrid;
     Rule ruleSet = new Rule();
-    System.Random rand = new System.Random();
+    System.Random rand;
 
-    public float speed = 0.1f;
-    public float timer = 0f;
-    public bool randomization = false;
-    public bool isPaused = true;
-    public bool isRandom = false;
+    public float speed;
+    public float timer;
+    public bool randomization;
+    public bool isPaused;
+    public bool isRandom;
+    public bool isZone;
+
+    Zone[,] zoneGrid;
+    Rule zoneRule;
+
+    int[] zoneX;
+    int[] zoneY;
+
+    void Awake()
+    {
+        cellGrid = new Cell[Globals.gridWidth, Globals.gridHeight];
+        ruleSet = new Rule();
+        rand = new System.Random();
+        zoneRule = new Rule();
+        speed = 0.1f;
+        timer = 0f;
+        randomization = false;
+        isPaused = true;
+        isRandom = false;
+        isZone = false;
+        zoneX = new int[2];
+        zoneY = new int[2];
+        zoneX[0] = -1;
+        zoneX[1] = -1;
+        zoneY[0] = -1;
+        zoneY[1] = -1;
+    }
 
     void OnEnable()
     {
         string deathRules = PlayerPrefs.GetString("deathRules");
         string birthRules = PlayerPrefs.GetString("birthRules");
         int maxAge = PlayerPrefs.GetInt("maxAge");
-        var d = Array.ConvertAll(deathRules.Split(' '), int.Parse);
-        var b = Array.ConvertAll(birthRules.Split(' '), int.Parse);
+
+        var d = new int[0];
+        var b = new int[0];
+
+        if (deathRules != " ")
+        {
+            d = Array.ConvertAll(deathRules.Split(' '), int.Parse);
+        }
+        else
+        {
+            d = new int[0];
+        }
+
+        if (birthRules != " ")
+        {
+            b = Array.ConvertAll(birthRules.Split(' '), int.Parse);
+        }
+        else
+        {
+            b = new int[0];
+        }
 
         ruleSet.cellDeath = d;
         ruleSet.cellBirth = b;
@@ -33,7 +79,53 @@ public class CustomGame : MonoBehaviour
 
     void Start()
     {
-        PlaceCells();
+        if (PlayerPrefs.HasKey("deathRulesZone") || PlayerPrefs.HasKey("birthRulesZone"))
+        {
+            string deathRules = PlayerPrefs.GetString("deathRulesZone");
+            string birthRules = PlayerPrefs.GetString("birthRulesZone");
+            int maxAge = PlayerPrefs.GetInt("maxAgeZone");
+
+            var d = new int[0];
+            var b = new int[0];
+
+            if (deathRules != " ")
+            {
+                d = Array.ConvertAll(deathRules.Split(' '), int.Parse);
+            }
+            else
+            {
+                d = new int[0];
+            }
+
+            if (birthRules != " ")
+            {
+                b = Array.ConvertAll(birthRules.Split(' '), int.Parse);
+            }
+            else
+            {
+                b = new int[0];
+            }
+
+            zoneX[0] = PlayerPrefs.GetInt("zoneX1");
+            zoneX[1] = PlayerPrefs.GetInt("zoneX2");
+            zoneY[0] = PlayerPrefs.GetInt("zoneY1");
+            zoneY[1] = PlayerPrefs.GetInt("zoneY2");
+
+            zoneRule.cellDeath = d;
+            zoneRule.cellBirth = b;
+            zoneRule.cellMaxAge = maxAge;
+            zoneRule.cellAge = maxAge > 0;
+
+            isZone = true;
+            PlaceZone();
+            PlaceCells();
+            DrawCells();
+        }
+        else
+        {
+            PlaceCells();
+            DrawCells();
+        }
     }
 
     void Update()
@@ -52,7 +144,6 @@ public class CustomGame : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.O))
             {
-                // Increase speed
                 if (speed >= 0.0f)
                 {
                     speed -= 0.01f;
@@ -60,7 +151,6 @@ public class CustomGame : MonoBehaviour
             }
             else if (Input.GetKeyDown(KeyCode.I))
             {
-                // Decrease speed
                 speed += 0.01f;
             }
 
@@ -92,12 +182,25 @@ public class CustomGame : MonoBehaviour
                 randomization = isRandom;
             }
 
-            if (Input.GetMouseButton(0))
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                ResetZone();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Mouse0))
             {
                 MouseInput();
             }
 
-            DrawCells();
+            if (Input.GetKeyDown(KeyCode.Mouse1))
+            {
+                SelectZone();
+            }
+
+            if (isZone && Input.GetKeyDown(KeyCode.M))
+            {
+                GoToZoneConfig();
+            }
         }
     }
 
@@ -125,6 +228,8 @@ public class CustomGame : MonoBehaviour
                 if (rand.NextDouble() > 0.8)
                 {
                     cellGrid[x, y].isAlive = true;
+                    cellGrid[x, y].age = 0;
+                    cellGrid[x, y].Draw();
                 }
             }
         }
@@ -137,6 +242,8 @@ public class CustomGame : MonoBehaviour
             for (int y = 0; y < Globals.gridHeight; y++)
             {
                 cellGrid[x, y].isAlive = false;
+                cellGrid[x, y].age = 0;
+                cellGrid[x, y].Draw();
             }
         }
     }
@@ -149,6 +256,8 @@ public class CustomGame : MonoBehaviour
         if (x >= 0 && x < Globals.gridWidth && y >= 0 && y < Globals.gridHeight)
         {
             cellGrid[x, y].isAlive = !cellGrid[x, y].isAlive;
+            cellGrid[x, y].age = 0;
+            cellGrid[x, y].Draw();
         }
     }
 
@@ -167,7 +276,6 @@ public class CustomGame : MonoBehaviour
     {
         DrawCells();
 
-        // Count number of neighbors
         for (int x = 0; x < Globals.gridWidth; x++)
         {
             for (int y = 0; y < Globals.gridHeight; y++)
@@ -191,9 +299,128 @@ public class CustomGame : MonoBehaviour
         {
             for (int y = 0; y < Globals.gridHeight; y++)
             {
+                if (x >= zoneX[0] && x <= zoneX[1] && y >= zoneY[0] && y <= zoneY[1])
+                {
+                    if (isZone)
+                    {
+                        cellGrid[x, y].activeRule = zoneRule;
+                    }
+                }
+                else
+                {
+                    cellGrid[x, y].activeRule = ruleSet;
+                }
+
                 cellGrid[x, y].UpdateCell();
             }
         }
+    }
+
+    void SelectZone()
+    {
+        Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        int x = Mathf.RoundToInt(mousePosition.x);
+        int y = Mathf.RoundToInt(mousePosition.y);
+
+        if (x >= 0 && x < Globals.gridWidth && y >= 0 && y < Globals.gridHeight)
+        {
+            if (zoneX[0] == -1 || zoneX[1] != -1)
+            {
+                ResetZone();
+
+                zoneX[0] = x;
+                zoneY[0] = y;
+            }
+            else 
+            {
+                isZone = true;
+
+                if (x < zoneX[0])
+                {
+                    zoneX[1] = zoneX[0];
+                    zoneX[0] = x;
+                }
+                else
+                {
+                    zoneX[1] = x;
+                }
+
+                if (y < zoneY[0])
+                {
+                    zoneY[1] = zoneY[0];
+                    zoneY[0] = y;
+                }
+                else
+                {
+                    zoneY[1] = y;
+                }
+
+                PlaceZone();
+            }
+        }
+    }
+
+    void ResetZone()
+    {
+        if (isZone)
+        {
+            ClearZone();
+            isZone = false;
+        }
+
+        zoneX[0] = -1;
+        zoneX[1] = -1;
+        zoneY[0] = -1;
+        zoneY[1] = -1;
+    }
+
+    void PlaceZone()
+    {
+        zoneGrid = new Zone[zoneX[1] - zoneX[0] + 1, zoneY[1] - zoneY[0] + 1];
+
+        for (int x = zoneX[0]; x <= zoneX[1]; x++)
+        {
+            for (int y = zoneY[0]; y <= zoneY[1]; y++)
+            {
+                Zone zoneCell = Instantiate(Resources.Load("Prefabs/Zone", typeof(Zone)), new Vector3(x, y, 1), Quaternion.identity) as Zone;
+                zoneGrid[x - zoneX[0], y - zoneY[0]] = zoneCell;
+            }
+        }
+
+        DrawZone();
+    }
+
+    void DrawZone()
+    {
+       for (int x = zoneX[0]; x <= zoneX[1]; x++)
+        {
+            for (int y = zoneY[0]; y <= zoneY[1]; y++)
+            {
+                zoneGrid[x - zoneX[0], y - zoneY[0]].Draw();
+            }
+        }
+    }
+
+    void ClearZone()
+    {
+        for (int x = zoneX[0]; x <= zoneX[1]; x++)
+        {
+            for (int y = zoneY[0]; y <= zoneY[1]; y++)
+            {
+                Destroy(zoneGrid[x - zoneX[0], y - zoneY[0]].gameObject);
+                Destroy(zoneGrid[x - zoneX[0], y - zoneY[0]]);
+            }
+        }
+    }
+
+    void GoToZoneConfig()
+    {
+        PlayerPrefs.SetInt("zoneX1", zoneX[0]);
+        PlayerPrefs.SetInt("zoneX2", zoneX[1]);
+        PlayerPrefs.SetInt("zoneY1", zoneY[0]);
+        PlayerPrefs.SetInt("zoneY2", zoneY[1]);
+
+        SceneManager.LoadScene("CusomMenu");
     }
 
     // External functions (Buttons)

@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 using System;
 using TMPro;
 
-public class CustomMenu : MonoBehaviour
+public class CustomMenuZone : MonoBehaviour
 {
     bool[] deathRules   = {true,  true,  false, false, true,  true,  true};
     bool[] neutralRules = {false, false, true,  false, false, false, false};
@@ -170,9 +170,9 @@ public class CustomMenu : MonoBehaviour
             birthRulesString = " ";
         }
         
-        PlayerPrefs.SetString("deathRules", deathRulesString);
-        PlayerPrefs.SetString("birthRules", birthRulesString);
-        PlayerPrefs.SetInt("maxAge", maxAge);
+        PlayerPrefs.SetString("deathRulesZone", deathRulesString);
+        PlayerPrefs.SetString("birthRulesZone", birthRulesString);
+        PlayerPrefs.SetInt("maxAgeZone", maxAge);
         UnityEngine.SceneManagement.SceneManager.LoadScene(scene);
     }
 }
