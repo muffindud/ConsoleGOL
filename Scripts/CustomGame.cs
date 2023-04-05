@@ -420,7 +420,7 @@ public class CustomGame : MonoBehaviour
         PlayerPrefs.SetInt("zoneY1", zoneY[0]);
         PlayerPrefs.SetInt("zoneY2", zoneY[1]);
 
-        SceneManager.LoadScene("CusomMenu");
+        SceneManager.LoadScene("CustomMenuZone");
     }
 
     // External functions (Buttons)
