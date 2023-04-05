@@ -5,10 +5,10 @@ using UnityEngine.SceneManagement;
 using System;
 using System.Threading;
 
-public class BaseGame : MonoBehaviour
+public class CustomGame : MonoBehaviour
 {
     Cell[,] cellGrid = new Cell[Globals.gridWidth, Globals.gridHeight];
-    Rule baseRule = new Rule();
+    Rule ruleSet = new Rule();
     System.Random rand = new System.Random();
 
     public float speed = 0.1f;
@@ -16,10 +16,20 @@ public class BaseGame : MonoBehaviour
     public bool randomization = false;
     public bool isPaused = true;
     public bool isRandom = false;
-    public bool isZone = false;
 
-    int[] zoneX = {-1, -1};
-    int[] zoneY = {-1, -1};
+    void OnEnable()
+    {
+        string deathRules = PlayerPrefs.GetString("deathRules");
+        string birthRules = PlayerPrefs.GetString("birthRules");
+        int maxAge = PlayerPrefs.GetInt("maxAge");
+        var d = Array.ConvertAll(deathRules.Split(' '), int.Parse);
+        var b = Array.ConvertAll(birthRules.Split(' '), int.Parse);
+
+        ruleSet.cellDeath = d;
+        ruleSet.cellBirth = b;
+        ruleSet.cellMaxAge = maxAge;
+        ruleSet.cellAge = maxAge > 0;
+    }
 
     void Start()
     {
@@ -87,11 +97,6 @@ public class BaseGame : MonoBehaviour
                 MouseInput();
             }
 
-            if (Input.GetMouseButton(1))
-            {
-                SelectZone();
-            }
-
             DrawCells();
         }
     }
@@ -105,7 +110,7 @@ public class BaseGame : MonoBehaviour
             for (int y = 0; y < Globals.gridHeight; y++)
             {
                 Cell cell = Instantiate(Resources.Load("Prefabs/Cell", typeof(Cell)), new Vector2(x, y), Quaternion.identity) as Cell;
-                cell.activeRule = baseRule;
+                cell.activeRule = ruleSet;
                 cellGrid[x, y] = cell;
             }
         }
@@ -189,66 +194,6 @@ public class BaseGame : MonoBehaviour
                 cellGrid[x, y].UpdateCell();
             }
         }
-    }
-
-    void SelectZone()
-    {
-        Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        int x = Mathf.RoundToInt(mousePosition.x);
-        int y = Mathf.RoundToInt(mousePosition.y);
-        if (x >= 0 && x < Globals.gridWidth && y >= 0 && y < Globals.gridHeight)
-        {
-            if (zoneX[0] == -1)
-            {
-                ResetZone();
-                isZone = true;
-
-                zoneX[0] = x;
-                zoneY[0] = y;
-            }
-            else 
-            {
-                if (x < zoneX[0])
-                {
-                    zoneX[1] = zoneX[0];
-                    zoneX[0] = x;
-                }
-                else
-                {
-                    zoneX[1] = x;
-                }
-
-                if (y < zoneY[0])
-                {
-                    zoneY[1] = zoneY[0];
-                    zoneY[0] = y;
-                }
-                else
-                {
-                    zoneY[1] = y;
-                }
-            }
-        }
-    }
-
-    void ResetZone()
-    {
-        isZone = false;
-
-        zoneX[0] = -1;
-        zoneX[1] = -1;
-        zoneY[0] = -1;
-        zoneY[1] = -1;
-    }
-
-    void PlaceZone()
-    {
-        // TODO
-    }
-
-    void DrawZone()
-    {
-        // TODO
     }
 
     // External functions (Buttons)

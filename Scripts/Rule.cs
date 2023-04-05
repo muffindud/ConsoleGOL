@@ -12,9 +12,5 @@ public class Rule
     public bool cellAge = false;
     public int cellMaxAge = 0;
 
-    public Rule(int maxAge = 0)
-    {
-        cellMaxAge = maxAge;
-        cellAge = maxAge > 0;
-    }
+    public Rule(){}
 }

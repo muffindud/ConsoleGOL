@@ -25,6 +25,7 @@ public class Cell : MonoBehaviour
         else if (activeRule.cellDeath.Contains(neighbors) && isAlive)
         {
             isAlive = false;
+            age = 0;
         }
         else if (isAlive)
         {
